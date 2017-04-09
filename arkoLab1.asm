@@ -47,6 +47,24 @@ fileHeader:
       	syscall 
       	lw $s1, header	#zapisujemy to co przeczytaliśmy
       	
+      	#*****#
+      	
+      	#Alokujemy pamiec, gdzie czytane beda informacje.
+      	move $a0, $s0	#to co wyczytalismy z pilku input
+      	li $v0, 9	#alokacja pamieci
+      	syscall
+      	move $t0 ,$v0	#t0 zawiera adres zaalokowanej pamieci
+      	
+      	#czytamy dane z pliku do naszego miejsca zaalokowanego na stosie.
+      	move $a0, $t1	#deskryptor pliku
+      	move $a1, $t0	#do tego adresu czytamy
+      	move $a2, $s0	#tyle bajtow mamy przeczytac, czyli rozmiar calego pliku
+      	li $v0, 14  #read from file     
+      	syscall 
+      	
+      	#caly plik input jest juz w pamieci
+
+      	
       	
 	
 	
