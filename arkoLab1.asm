@@ -2,12 +2,14 @@
 	header:	.space 16
         input:      .asciiz "/Users/marcin/mips/arkoLab1/src16.bmp"
         output: .asciiz "/Users/marcin/mips/arkoLab1/output1.bmp"
+        newLine: .asciiz "\n"
 .text
 main:
+###
 	la $a0, input	#print
 	li $v0, 4
 	syscall
-	
+###
 	
 	#bedziemy otwierac plik
 	la $a0, input	#input file path
@@ -63,12 +65,44 @@ fileHeader:
       	syscall 
       	
       	#caly plik input jest juz w pamieci
+      	# $t1, $s0, $s1 - free
+      	
+      	#******#
+   	
+   	#zamykam plik
+   	move $a0, $t1	#deskryptor
+   	li $v0, 16	#zamkniecie pliku
+   	syscall
+   	
+      	lw $s3 , 4($t0) #czytam szerokosc bitmapy - skladuje w s3
+      	lw $s4 , 8($t0) #czytam wysokosc bitmapy - skladuje w s4
+      	
+###
+	la $a0, newLine	#print
+	li $v0, 4
+	syscall
+	
+      	move $a0, $s3	#print
+	li $v0, 1
+	syscall
+	
+	la $a0, newLine	#print
+	li $v0, 4
+	syscall
+   	
+   	move $a0, $s4	#print
+	li $v0, 1
+	syscall
+###   	
+      	
+      	
+      	
 
       	
       	
 	
 	
-	
+	#******#
 	
 	li $v0, 10	#exit
 	syscall
