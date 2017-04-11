@@ -35,12 +35,12 @@ plik_wy:		.align 4
 		# t3 - tymczasowy adres nowej bitmapy
 
 main:
-#wyswietlenie wiadomosci poczatkowej
+		#wyswietl sciezke
 		li $v0, 4
 		la $a0, sciezka1
 		syscall
 		
-		#otworzenie pliku wejsciowego o podanej nazwie
+		#otworzenie pliku wejsciowego
 		li $v0, 13
 		la $a0, sciezka1
 		li $a1, 0
@@ -57,8 +57,8 @@ main:
 		li $v0, 14
 		la $a0, (descriptor)
 		# aby wyrownac adresy do podzielnych przez 4
-		la $a1, header + 2
-		li $a2, 122
+		la $a1, header + 2	#addres of input file
+		li $a2, 122		#maximum number to read
 		syscall
 		#jesli nie udalo się odczytać wszystkich bajtów - błąd
 		bltz $v0, blad3
@@ -69,17 +69,17 @@ main:
 		la $a0, ($t7)
 		#la $a0, header + 36
 		syscall
-
+		
 		# adres pamięci do s1
 		move oldBmpAdr, $v0
 
 wczytaj_bajty:
 		# wczytanie bajtów do zaalokowanej pamięci
-		li $v0, 14
+		li $v0, 14	#read from file
 		la $a0, (descriptor)
-		la $a1, (oldBmpAdr)
+		la $a1, (oldBmpAdr)	# adress of input file
 		#la $a2, ($t7)
-		la $a2, header + 36
+		la $a2, header + 36	# tyle tam, czyli size tablicy
 		syscall
 		# jesli nie udalo się odczytać wszystkich bajtów - błąd
 		bltz $v0, blad3
@@ -95,10 +95,11 @@ wczytaj_bajty:
 		# ładuję do s0 wartość bits per pixel
 		lh $s0, header + 30
 		sh $s0, bpp
-		mul $s2, $s2, $s0
+		mul $s2, $s2, $s0	#w s2 bedzie szerokosc nowej bitmapy ale w bitach
+		#padding
 		addi $s2, $s2, 31
 		srl $s2, $s2, 5
-		sll $s2, $s2, 2
+		sll $s2, $s2, 2		
 
 		# wysokość nowej bitampy = szerokość oryginalnej, do s3
 		lw $s3, header + 20
@@ -123,8 +124,8 @@ wczytaj_bajty:
 
 		# ustawienie wskaznika nowej bitmapy na lewy gorny rog
 		lw $t5, wielkosc
-		sub $t5, $t5, $s2
-		add $t3, $t3, $t5
+		sub $t5, $t5, $s2	#odejmuje wiersz starej bitmapy
+		add $t3, $t3, $t5	#ide na sam koniec
 		# zapamietanie adresu na lewy gorny rog nowej bitmapy
 		move  start, $t3
 
@@ -134,17 +135,16 @@ wczytaj_bajty:
 
 		# w s4 wartość paddingu dla starego wiersza, którą będziemy pomijać w pętli
 		lh $s0, bpp
-		lw $s4, header + 20
+		lw $s4, header + 20	#height
 		mul $s4, $s4, $s0
 		addi $s4, $s4, 31
 		srl $s4, $s4, 5
 		sll $s4, $s4, 2
-		#zamiana bits per pixel na bytes per pixel
-		srl $s0, $s0, 3
+		srl $s0, $s0, 3		#zamiana bits per pixel na bytes per pixel
 		sh $s0, bpp
-		lw $t7, header + 20
-		mul $t7, $t7, $s0
-		sub $s4, $s4, $t7
+		lw $t7, header + 20	#height
+		mul $t7, $t7, $s0	#wys w bajtach bez padingu
+		sub $s4, $s4, $t7	#wychodzi czysty padding
 
 
 
@@ -155,25 +155,25 @@ przepisywanie_kolumny:
 przepisz_bajty:
 		lb $t5, ($t2)
 		sb $t5, ($t3)
-		addi $t7, $t7, 1
+		addi $t7, $t7, 1	#increment
 		lh $s0, bpp
-		beq $t7, $s0, dalej
+		beq $t7, $s0, dalej	#po 3 zapisanym bajcie (pelny pixel)
 		# przesuwam się o kolejny bit w starej bitmapie i nowej bitmapie
 		addi $t2, $t2, 1
 		addi $t3, $t3, 1
 		j przepisz_bajty
 dalej:
 		#cofamy się do początku pixela
-		lh $s0, bpp
+		lh $s0, bpp		#bpp = 3
 		subi $s0, $s0, 1
-		sub $t3, $t3, $s0
+		sub $t3, $t3, $s0	#odejmuje od wskaznika 2
 
 		#przeskakuję do kolejnego wiersza
 		addi heightCounter, heightCounter, 1
 		#jesli jesteśmy w ostatnim elemencie kolumny, przeskok do nowej
-		beq heightCounter, $s3, nowa_kolumna
-		addi $t2, $t2, 1
-		sub $t3, $t3, $s2
+		beq heightCounter, $s3, nowa_kolumna	#s3 - wys nowej bmp
+		addi $t2, $t2, 1	# wskaznik starej idzie do przodu
+		sub $t3, $t3, $s2	# s2 wys nowwej kolumny
 		j przepisywanie_kolumny
 
 nowa_kolumna:
@@ -188,11 +188,11 @@ nowa_kolumna:
 		beq widthCounter, $t7, koncz
 		move $s5, widthCounter
 		# o tyle bajtów muszę się przesunąć
-		lh $s0, bpp
+		lh $s0, bpp	#3
 		mul $s5, $s5, $s0
 		add $t3, $t3, $s5
 		# pomijamy bity paddingu w starej bitmapie
-		add $t2, $t2, $s4 #
+		add $t2, $t2, $s4 # $s4 czysty padding
 		#przesuwamy się o kolejną pozycję w starej bitmapie
 		addi $t2, $t2, 1
 		j przepisywanie_kolumny
@@ -207,7 +207,7 @@ koncz:
 		lw $s4, wielkosc
 		sw $s4, header + 36
 		addi $s4, $s4, 122
-		sw $s4, header + 4
+		sw $s4, header + 4	#caly plik
 
 		#otworzenie pliku wyjsciowego o podanej nazwie
 		li $v0, 13
